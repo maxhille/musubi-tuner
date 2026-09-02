@@ -953,11 +953,19 @@ class FineTuningTrainer:
                 init_kwargs=init_kwargs,
             )
 
-        # TODO skip until initial step
-        progress_bar = tqdm(range(args.max_train_steps), smoothing=0, disable=not accelerator.is_local_main_process, desc="steps")
-
+        # Restore the epoch counter on resume.  accelerator.step resets to 0
+        # at every epoch boundary, so parse the completed epoch from the state
+        # directory name (e.g. model-000032-state -> 32) instead.
         epoch_to_start = 0
         global_step = 0
+        if args.resume:
+            saved_epoch = train_utils.load_resume_epoch(args.resume)
+            if saved_epoch is not None and saved_epoch > 0:
+                epoch_to_start = saved_epoch
+                global_step = epoch_to_start * num_update_steps_per_epoch
+                logger.info(f"resuming from epoch {epoch_to_start} (step {global_step})")
+
+        progress_bar = tqdm(range(args.max_train_steps - global_step), smoothing=0, disable=not accelerator.is_local_main_process, desc="steps")
         noise_scheduler = FlowMatchDiscreteScheduler(shift=args.discrete_flow_shift, reverse=True, solver="euler")
 
         loss_recorder = train_utils.LossRecorder()

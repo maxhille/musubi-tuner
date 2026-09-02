@@ -106,6 +106,22 @@ def get_last_ckpt_name(model_name):
     return model_name + ".safetensors"
 
 
+def load_resume_epoch(state_dir: str) -> int | None:
+    """Recover the completed epoch from a state directory name.
+
+    Parses the six-digit epoch number from directory names like
+    ``model-000032-state``.  Returns ``None`` for final-state dirs
+    (``model-state``, no epoch number) or unrecognised names.
+    """
+    import re
+
+    name = os.path.basename(state_dir.rstrip("/"))
+    m = re.search(r"-(\d{6})-state$", name)
+    if m:
+        return int(m.group(1))
+    return None
+
+
 def get_remove_epoch_no(args: argparse.Namespace, epoch_no: int):
     if args.save_last_n_epochs is None:
         return None
