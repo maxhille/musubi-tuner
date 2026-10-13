@@ -37,6 +37,13 @@ def detect_arch_config(unet):
 
     # Kandinsky5 is not supported in auto-detection (uses include_patterns, requires special handling)
 
+    if "SingleStreamDiT" in module_class_names:
+        # Krea 2: target ALL Linear layers (same as networks/lora_krea2.py, whose
+        # KREA2_TARGET_REPLACE_MODULES is None). Modulation (DoubleSharedModulation /
+        # SimpleModulation) and RMSNorm hold raw nn.Parameters, not Linear modules, so
+        # they are never wrapped and no default exclude patterns are needed.
+        return None, []
+
     if "DoubleStreamBlock" in module_class_names:
         # FLUX Kontext and FLUX 2 share same target/exclude config
         from .lora_flux import FLUX_KONTEXT_TARGET_REPLACE_MODULES
